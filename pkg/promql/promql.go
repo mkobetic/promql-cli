@@ -45,7 +45,7 @@ func CreateClient(host string) (v1.API, error) {
 }
 
 // CreateClientWithAuth creates a Client interface witht the provided hostname and auth config
-func CreateClientWithAuth(host string, authCfg config.Authorization, tlsCfg config.TLSConfig) (v1.API, error) {
+func CreateClientWithAuth(host, dial string, authCfg config.Authorization, tlsCfg config.TLSConfig) (v1.API, error) {
 	cfg := api.Config{
 		Address: host,
 	}
@@ -53,12 +53,19 @@ func CreateClientWithAuth(host string, authCfg config.Authorization, tlsCfg conf
 	if err != nil {
 		return nil, fmt.Errorf("error parsing TLS config, %s", err)
 	}
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	dc := dialer.DialContext
+	if dial != "" {
+		dc = func(ctx context.Context, network string, address string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, dial)
+		}
+	}
 	var rt http.RoundTripper = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
+		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         dc,
 		TLSHandshakeTimeout: 10 * time.Second,
 		TLSClientConfig:     tc,
 	}
@@ -86,6 +93,7 @@ func CreateClientWithAuth(host string, authCfg config.Authorization, tlsCfg conf
 // Cfg conatins the final configuration params parsed from a combo of flags, config file values, and env vars.
 type PromQL struct {
 	Host            string
+	Dial            string
 	Step            string
 	Output          string
 	TimeoutDuration time.Duration

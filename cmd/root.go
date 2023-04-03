@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -64,6 +64,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		pql.Host = viper.GetString("host")
+		pql.Dial = viper.GetString("dial")
 		pql.Step = viper.GetString("step")
 		pql.Output = viper.GetString("output")
 		// Convert our timeout flag into a time.Duration
@@ -79,7 +80,7 @@ var rootCmd = &cobra.Command{
 			pql.Time = t
 		}
 		// Create and set client interface
-		cl, err := promql.CreateClientWithAuth(pql.Host, pql.Auth, pql.TLSConfig)
+		cl, err := promql.CreateClientWithAuth(pql.Host, pql.Dial, pql.Auth, pql.TLSConfig)
 		if err != nil {
 			errlog.Fatalln(err)
 		}
@@ -137,6 +138,10 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&pql.CfgFile, "config", "", "config file location (default $HOME/.promql-cli.yaml)")
 	rootCmd.PersistentFlags().String("host", "http://0.0.0.0:9090", "prometheus server url")
 	if err := viper.BindPFlag("host", rootCmd.PersistentFlags().Lookup("host")); err != nil {
+		errlog.Fatalln(err)
+	}
+	rootCmd.PersistentFlags().String("dial", "", "address to dial instead of the host url address")
+	if err := viper.BindPFlag("dial", rootCmd.PersistentFlags().Lookup("dial")); err != nil {
 		errlog.Fatalln(err)
 	}
 	rootCmd.PersistentFlags().String("step", "1m", "results step duration (h,m,s e.g. 1m)")
